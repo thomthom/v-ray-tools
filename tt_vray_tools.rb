@@ -17,19 +17,20 @@
 require 'sketchup.rb'
 require 'TT_Lib2/core.rb'
 
-TT::Lib.compatible?('2.5.0', 'V-Ray Tools')
+TT::Lib.compatible?('2.5.0', 'V-Ray Tools²')
 
 #-----------------------------------------------------------------------------
 
-module TT::Plugins::Raytracer
+module TT::Plugins::VRayTools
   
   ### CONSTANTS ### --------------------------------------------------------
   
   VERSION = '2.0.0'.freeze
   PREF_KEY = 'TT_VRayTools'.freeze
+  PLUGIN_NAME = 'V-Ray Tools²'.freeze
   
   VRAY_ATTRIBUTES = {
-    '1.05' => '{DD17A615-9867-4806-8F46-B37031D7F153}'
+    '1.05' => '{DD17A615-9867-4806-8F46-B37031D7F153}',
     '1.48' => 'Something...Check the previous project to see the value we used'
   }.freeze
   
@@ -53,7 +54,7 @@ module TT::Plugins::Raytracer
   ### MENU & TOOLBARS ### --------------------------------------------------
   
   unless file_loaded?( File.basename(__FILE__) )
-    m = TT.menu('Plugins').add_submenu('V-Ray Tools')
+    m = TT.menu('Plugins').add_submenu( PLUGIN_NAME )
     
     m_loader = m.add_item('Load V-Ray') { self.load_vray }
     m.set_validation_proc( m_loader ) { menu_validate_vfsu_load }
@@ -98,7 +99,7 @@ module TT::Plugins::Raytracer
   
   def self.vray_data_size( entity )
     size = 0
-    self.each_vray_dictionary( d ) { |dictionary|
+    self.each_vray_dictionary( entity ) { |dictionary|
       dictionary.each_pair { |k,v|
         size += v.length if v.respond_to?( :length )
       }
@@ -116,7 +117,7 @@ module TT::Plugins::Raytracer
     size = 0
     
     # Model
-    size += self.vray_data_size( entity )
+    size += self.vray_data_size( model )
     self.each_vray_dictionary( model ) { |dictionary|
       model.attribute_dictionaries.delete( dictionary )
     }
@@ -146,7 +147,9 @@ module TT::Plugins::Raytracer
       }
     }
     
-    puts "Purged model for #{size} bytes of V-Ray data"
+    message = "Purged model for #{size} bytes of V-Ray data"
+    puts message
+    UI.messagebox( message )
     
     size
   end
