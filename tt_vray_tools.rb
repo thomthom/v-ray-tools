@@ -156,7 +156,7 @@ module TT::Plugins::Raytracer
     if @vray_loader
       require @vray_loader
     else
-      UI.messagebox( 'Could not load V-Ray. Is it installed correctly?' )
+      UI.messagebox( 'Could not load V-Ray for SketchUp. Is it installed correctly?' )
     end
   end
   
