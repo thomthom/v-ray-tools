@@ -63,6 +63,9 @@ module TT::Plugins::VRayTools
     
     m.add_separator
     
+    m.add_item('Purge V-Ray Materials') {
+      self.purge_materials
+    }
     m.add_item('Purge V-Ray Settings and Materials') {
       self.purge_settings_and_materialsh
     }
@@ -203,6 +206,39 @@ module TT::Plugins::VRayTools
     model.commit_operation
     
     message = "Purged model for #{size} bytes of V-Ray data"
+    puts message
+    UI.messagebox( message )
+    
+    size
+  end
+  
+  
+  # Purge materials.
+  def self.purge_materials
+    message = 'This will remove the V-Ray render material data. Continue?'
+    result = UI.messagebox( message, MB_YESNO )
+    return if result == 7
+    
+    model = Sketchup.active_model
+    materials = model.materials
+    
+    # Count data size
+    size = 0
+    
+    TT::Model.start_operation('Purge V-Ray Materials')
+    
+    # Materials
+    (0...materials.count).each { |i|
+      material = materials[i]
+      size += self.vray_data_size( material )
+      self.each_vray_dictionary( material ) { |dictionary|
+        material.attribute_dictionaries.delete( dictionary )
+      }
+    }
+    
+    model.commit_operation
+    
+    message = "Purged materials for #{size} bytes of V-Ray data"
     puts message
     UI.messagebox( message )
     
