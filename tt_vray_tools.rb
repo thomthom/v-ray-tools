@@ -128,6 +128,8 @@ module TT::Plugins::VRayTools
     # Count data size
     size = 0
     
+    TT::Model.start_operation('Purge All V-Ray Data')
+    
     # Model
     size += self.vray_data_size( model )
     self.each_vray_dictionary( model ) { |dictionary|
@@ -159,6 +161,8 @@ module TT::Plugins::VRayTools
       }
     }
     
+    model.commit_operation
+    
     message = "Purged model for #{size} bytes of V-Ray data"
     puts message
     UI.messagebox( message )
@@ -179,6 +183,8 @@ module TT::Plugins::VRayTools
     # Count data size
     size = 0
     
+    TT::Model.start_operation('Purge V-Ray Settings and Materials')
+    
     # Model
     size += self.vray_data_size( model )
     self.each_vray_dictionary( model ) { |dictionary|
@@ -193,6 +199,8 @@ module TT::Plugins::VRayTools
         material.attribute_dictionaries.delete( dictionary )
       }
     }
+    
+    model.commit_operation
     
     message = "Purged model for #{size} bytes of V-Ray data"
     puts message
