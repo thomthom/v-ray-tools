@@ -56,12 +56,19 @@ module TT::Plugins::VRayTools
   unless file_loaded?( File.basename(__FILE__) )
     m = TT.menu('Plugins').add_submenu( PLUGIN_NAME )
     
-    m_loader = m.add_item('Load V-Ray') { self.load_vray }
+    m_loader = m.add_item('Load V-Ray') {
+      self.load_vray
+    }
     m.set_validation_proc( m_loader ) { menu_validate_vfsu_load }
     
     m.add_separator
     
-    m.add_item('Purge All V-Ray Data') { self.purge_all }
+    m.add_item('Purge V-Ray Settings and Materials') {
+      self.purge_settings_and_materialsh
+    }
+    m.add_item('Purge All V-Ray Data') {
+      self.purge_all
+    }
   end
   
   
@@ -108,8 +115,13 @@ module TT::Plugins::VRayTools
   end
   
   
-  # ...
+  # Purges ALL the V-Ray attributes in the model. This includes attributes that
+  # define lights, infinite planes, etc...
   def self.purge_all
+    message = 'This will remove ALL V-Ray data in the model. Lights and infinite planes will no longer have V-Ray properties. Continue?'
+    result = UI.messagebox( message, MB_YESNO )
+    return if result == 7
+    
     model = Sketchup.active_model
     materials = model.materials
     
@@ -136,6 +148,41 @@ module TT::Plugins::VRayTools
           i.attribute_dictionaries.delete( dictionary )
         }
       }
+    }
+    
+    # Materials
+    (0...materials.count).each { |i|
+      material = materials[i]
+      size += self.vray_data_size( material )
+      self.each_vray_dictionary( material ) { |dictionary|
+        material.attribute_dictionaries.delete( dictionary )
+      }
+    }
+    
+    message = "Purged model for #{size} bytes of V-Ray data"
+    puts message
+    UI.messagebox( message )
+    
+    size
+  end
+  
+  
+  # Purge settings and materials.
+  def self.purge_settings_and_materials
+    message = 'This will remove the V-Ray render settings and material data. Continue?'
+    result = UI.messagebox( message, MB_YESNO )
+    return if result == 7
+    
+    model = Sketchup.active_model
+    materials = model.materials
+    
+    # Count data size
+    size = 0
+    
+    # Model
+    size += self.vray_data_size( model )
+    self.each_vray_dictionary( model ) { |dictionary|
+      model.attribute_dictionaries.delete( dictionary )
     }
     
     # Materials
