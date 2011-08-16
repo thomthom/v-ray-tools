@@ -50,7 +50,7 @@ module TT::Plugins::VRayTools
   begin
     require 'vfs.rb'
     @vray_loader = File.join( ASGVISRubyFolder, 'R2P.rb' )
-  rescue
+  rescue LoadError
     @vray_loader = nil
   end
   
