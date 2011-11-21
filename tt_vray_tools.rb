@@ -17,7 +17,7 @@
 require 'sketchup.rb'
 require 'TT_Lib2/core.rb'
 
-TT::Lib.compatible?('2.5.4', 'V-Ray Tools²')
+TT::Lib.compatible?('2.6.0', 'V-Ray Tools²')
 
 #-----------------------------------------------------------------------------
 
@@ -25,17 +25,18 @@ module TT::Plugins::VRayTools
   
   ### CONSTANTS ### --------------------------------------------------------
   
-  VERSION = '2.0.0'.freeze
-  PREF_KEY = 'TT_VRayTools'.freeze
   PLUGIN_NAME = 'V-Ray Tools²'.freeze
+  PLUGIN_VERSION = '2.0.0'.freeze
   
-  PLUGIN_PATH = File.dirname( __FILE__ )
-  PLUGIN_RESOURCE_PATH = File.join( PLUGIN_PATH, 'V-Ray Tools 2' )
-  ICONS_PATH = File.join( PLUGIN_RESOURCE_PATH, 'Icons' )
+  PREF_KEY = 'TT_VRayTools'.freeze
+  
+  PATH_ROOT   = File.dirname( __FILE__ ).freeze
+  PATH_PLUGIN = File.join( PATH_ROOT, 'V-Ray Tools 2' ).freeze
+  PATH_ICONS  = File.join( PATH_PLUGIN, 'Icons' ).freeze
   
   VRAY_ATTRIBUTES = {
-    '1.05' => '{DD17A615-9867-4806-8F46-B37031D7F153}',
-    '1.48' => 'Something...Check the previous project to see the value we used'
+    '1.05' => '{DD17A615-9867-4806-8F46-B37031D7F153}'.freeze,
+    '1.48' => 'Something...Check the previous project to see the value we used'.freeze
   }.freeze
   
   
@@ -62,8 +63,8 @@ module TT::Plugins::VRayTools
     cmd = UI::Command.new( 'Load V-Ray' ) { 
       self.load_vray
     }
-    cmd.small_icon = File.join( ICONS_PATH, 'vfsu_16.png' )
-    cmd.large_icon = File.join( ICONS_PATH, 'vfsu_24.png' )
+    cmd.small_icon = File.join( PATH_ICONS, 'vfsu_16.png' )
+    cmd.large_icon = File.join( PATH_ICONS, 'vfsu_24.png' )
     cmd.tooltip = 'Loads V-Ray for SketchUp'
     cmd.status_bar_text = 'Loads V-Ray for SketchUp'
     cmd_load_vfsu = cmd
@@ -78,15 +79,15 @@ module TT::Plugins::VRayTools
     cmd = UI::Command.new( 'Set Camera Aspect Ratio' ) { 
       self.todo
     }
-    cmd.small_icon = File.join( ICONS_PATH, 'camera_aspect_16.png' )
-    cmd.large_icon = File.join( ICONS_PATH, 'camera_aspect_24.png' )
+    cmd.small_icon = File.join( PATH_ICONS, 'camera_aspect_16.png' )
+    cmd.large_icon = File.join( PATH_ICONS, 'camera_aspect_24.png' )
     cmd_set_camera_aspect_ratio = cmd
     
     cmd = UI::Command.new( 'Reset Camera Aspect Ratio' ) { 
       self.reset_camera_aspect_ratio
     }
-    cmd.small_icon = File.join( ICONS_PATH, 'camera_reset_16.png' )
-    cmd.large_icon = File.join( ICONS_PATH, 'camera_reset_24.png' )
+    cmd.small_icon = File.join( PATH_ICONS, 'camera_reset_16.png' )
+    cmd.large_icon = File.join( PATH_ICONS, 'camera_reset_24.png' )
     cmd.tooltip = 'Resets the camera aspect ratio'
     cmd.status_bar_text = 'Resets the camera aspect ratio'
     cmd_reset_camera_aspect_ratio = cmd
@@ -94,16 +95,16 @@ module TT::Plugins::VRayTools
     cmd = UI::Command.new( 'Export CameraView' ) { 
       self.todo
     }
-    cmd.small_icon = File.join( ICONS_PATH, 'camera_export_viewport_16.png' )
-    cmd.large_icon = File.join( ICONS_PATH, 'camera_export_viewport_24.png' )
+    cmd.small_icon = File.join( PATH_ICONS, 'camera_export_viewport_16.png' )
+    cmd.large_icon = File.join( PATH_ICONS, 'camera_export_viewport_24.png' )
     cmd_export_camera_view = cmd
     
     
     # Menus
     m = TT.menu('Plugins').add_submenu( PLUGIN_NAME )
     
-    m_loader = m.add_item( cmd_load_vfsu )
-    m.set_validation_proc( m_loader ) { menu_validate_vfsu_load }
+    menu = m.add_item( cmd_load_vfsu )
+    m.set_validation_proc( menu ) { menu_validate_vfsu_load }
     
     m.add_separator
     
@@ -145,6 +146,7 @@ module TT::Plugins::VRayTools
   end
   
   
+  # @since 2.0.0
   def self.menu_validate_vfsu_load
     if file_loaded?('R2P.rb')
       MF_DISABLED | MF_GRAYED
@@ -154,6 +156,7 @@ module TT::Plugins::VRayTools
   end
   
   
+  # @since 2.0.0
   def self.menu_validate_selected_face_material
     if self.selection_is_face_with_material?
       MF_ENABLED
@@ -163,6 +166,7 @@ module TT::Plugins::VRayTools
   end
   
   
+  # @since 2.0.0
   def self.selection_is_face_with_material?
     model = Sketchup.active_model
     sel = model.selection
@@ -172,6 +176,7 @@ module TT::Plugins::VRayTools
   
   ### MAIN SCRIPT ### ------------------------------------------------------
   
+  # @since 2.0.0
   def self.is_vray_object?( entity )
     return false unless TT::Instance.is?( entity )
     return false if entity.attribute_dictionaries.nil?
@@ -185,6 +190,7 @@ module TT::Plugins::VRayTools
   end
   
   
+  # @since 2.0.0
   def self.each_vray_dictionary( entity )
     VRAY_ATTRIBUTES.each { |version, vr_attribute|
       dictionary = entity.attribute_dictionary( vr_attribute )
@@ -193,6 +199,7 @@ module TT::Plugins::VRayTools
   end
   
   
+  # @since 2.0.0
   def self.vray_data_size( entity )
     size = 0
     self.each_vray_dictionary( entity ) { |dictionary|
@@ -205,18 +212,24 @@ module TT::Plugins::VRayTools
   
   
   # Dummy message
+  #
+  # @since 2.0.0
   def self.todo
     UI.messagebox('Not implemented yet!')
   end
   
   
   # Reset Camera aspect ratio
+  #
+  # @since 2.0.0
   def self.reset_camera_aspect_ratio
     Sketchup.active_model.active_view.camera.aspect_ratio = 0
   end
   
   
   # Clone Material
+  #
+  # @since 2.0.0
   def self.clone_material( material, model, force_name = nil )
     if force_name
       new_material = model.materials[ force_name ] || model.materials.add( force_name )
@@ -247,6 +260,8 @@ module TT::Plugins::VRayTools
   
   
   # Use the front-side material of the selected face as material override.
+  #
+  # @since 2.0.0
   def self.use_selected_materials_as_override
     model = Sketchup.active_model
     materials = model.materials
@@ -271,6 +286,8 @@ module TT::Plugins::VRayTools
   
   # Purges ALL the V-Ray attributes in the model. This includes attributes that
   # define lights, infinite planes, etc...
+  #
+  # @since 2.0.0
   def self.purge_all
     message = 'This will remove ALL V-Ray data in the model. Lights and infinite planes will no longer have V-Ray properties. Continue?'
     result = UI.messagebox( message, MB_YESNO )
@@ -326,6 +343,8 @@ module TT::Plugins::VRayTools
   
   
   # Purge settings and materials.
+  #
+  # @since 2.0.0
   def self.purge_settings_and_materials
     message = 'This will remove the V-Ray render settings and material data. Continue?'
     result = UI.messagebox( message, MB_YESNO )
@@ -365,6 +384,8 @@ module TT::Plugins::VRayTools
   
   
   # Purge materials.
+  #
+  # @since 2.0.0
   def self.purge_materials
     message = 'This will remove the V-Ray render material data. Continue?'
     result = UI.messagebox( message, MB_YESNO )
@@ -397,6 +418,7 @@ module TT::Plugins::VRayTools
   end
   
   
+  # @since 2.0.0
   def self.load_vray
     if @vray_loader
       require @vray_loader
@@ -408,6 +430,7 @@ module TT::Plugins::VRayTools
   
   ### DEBUG ### ------------------------------------------------------------
   
+  # @since 2.0.0
   def self.reload
     load __FILE__
   end
