@@ -58,7 +58,7 @@ module TT::Plugins::VRayTools
   
   ### MENU & TOOLBARS ### --------------------------------------------------
   
-  unless file_loaded?( File.basename(__FILE__) )
+  unless file_loaded?( __FILE__ )
     # Commands
     cmd = UI::Command.new( 'Load V-Ray' ) { 
       self.load_vray
@@ -77,7 +77,7 @@ module TT::Plugins::VRayTools
     cmd_override_material = cmd
     
     cmd = UI::Command.new( 'Set Camera Aspect Ratio' ) { 
-      self.todo
+      self.open_camera_window
     }
     cmd.small_icon = File.join( PATH_ICONS, 'camera_aspect_16.png' )
     cmd.large_icon = File.join( PATH_ICONS, 'camera_aspect_24.png' )
@@ -93,7 +93,7 @@ module TT::Plugins::VRayTools
     cmd_reset_camera_aspect_ratio = cmd
     
     cmd = UI::Command.new( 'Export CameraView' ) { 
-      self.todo
+      self.open_camera_window
     }
     cmd.small_icon = File.join( PATH_ICONS, 'camera_export_viewport_16.png' )
     cmd.large_icon = File.join( PATH_ICONS, 'camera_export_viewport_24.png' )
@@ -105,6 +105,12 @@ module TT::Plugins::VRayTools
     
     menu = m.add_item( cmd_load_vfsu )
     m.set_validation_proc( menu ) { menu_validate_vfsu_load }
+    
+    m.add_separator
+    
+    m.add_item( 'Distance Probe' ) {
+      Sketchup.active_model.select_tool( DistanceProbe.new )
+    }
     
     m.add_separator
     
@@ -137,7 +143,7 @@ module TT::Plugins::VRayTools
     toolbar.add_separator
     toolbar.add_item( cmd_set_camera_aspect_ratio )
     toolbar.add_item( cmd_reset_camera_aspect_ratio )
-    toolbar.add_item( cmd_export_camera_view )
+    #toolbar.add_item( cmd_export_camera_view )
     
     if toolbar.get_last_state == TB_VISIBLE
       toolbar.restore
@@ -225,6 +231,214 @@ module TT::Plugins::VRayTools
   def self.reset_camera_aspect_ratio
     Sketchup.active_model.active_view.camera.aspect_ratio = 0
   end
+  
+  
+  # @since 2.0.0
+  def self.open_camera_window
+    
+    view = Sketchup.active_model.active_view
+    camera = view.camera
+    
+    #unless @window
+      props = {
+        :dialog_title => 'Camera Tools',
+        :width => 200,
+        :height => 250,
+        :resizable => false
+      }
+      @window = TT::GUI::ToolWindow.new( props )
+      @window.theme = TT::GUI::Window::THEME_GRAPHITE
+      
+      change_event = proc { |control|
+        #self.filter_changed( control.value )
+        puts control.value
+      }
+      
+      # Aspect Ratio
+      eAspectChange = DeferredEvent.new { |value| self.aspect_changed( value ) }
+      aspect_ratio = TT::Locale.float_to_string( camera.aspect_ratio )
+      txtAspectRatio = TT::GUI::Textbox.new( aspect_ratio )
+      txtAspectRatio.top = 10
+      txtAspectRatio.left = 80
+      txtAspectRatio.width = 30
+      txtAspectRatio.add_event_handler( :textchange ) { |control|
+        eAspectChange.call( control.value )
+      }
+      @window.add_control( txtAspectRatio )
+      
+      lblWidth = TT::GUI::Label.new( 'Aspect Ratio:', txtAspectRatio )
+      lblWidth.top = 10
+      lblWidth.left = 10
+      @window.add_control( lblWidth )
+      
+      btnResetAspect = TT::GUI::Button.new( 'Reset' ) { |control|
+        self.reset_camera_aspect_ratio
+        textbox = @window.get_control_by_ui_id( txtAspectRatio.ui_id )
+        textbox.value = TT::Locale.float_to_string( 0.0 )
+      }
+      btnResetAspect.size( 75, 23 )
+      btnResetAspect.right = 5
+      btnResetAspect.top = 7
+      @window.add_control( btnResetAspect )
+      
+      # Width
+      eWidthChange = DeferredEvent.new { |value| self.width_changed( value ) }
+      txtWidth = TT::GUI::Textbox.new( view.vpwidth )
+      txtWidth.top = 100
+      txtWidth.left = 50
+      txtWidth.width = 40
+      txtWidth.add_event_handler( :textchange ) { |control|
+        eWidthChange.call( control.value )
+      }
+      @window.add_control( txtWidth )
+      
+      lblWidth = TT::GUI::Label.new( 'Width:', txtWidth )
+      lblWidth.top = 100
+      lblWidth.left = 10
+      @window.add_control( lblWidth )
+      
+      # Height
+      txtHeight = TT::GUI::Textbox.new( view.vpheight )
+      txtHeight.top = 100
+      txtHeight.left = 140
+      txtHeight.width = 40
+      txtHeight.add_event_handler( :textchange, &change_event )
+      @window.add_control( txtHeight )
+      
+      lblHeight = TT::GUI::Label.new( 'Height:', txtHeight )
+      lblHeight.top = 100
+      lblHeight.left = 100
+      @window.add_control( lblHeight )
+      
+      # Export
+      btnExport = TT::GUI::Button.new( 'Export' ) { |control|
+        self.todo
+      }
+      btnExport.size( 75, 23 )
+      btnExport.right = 5
+      btnExport.top = 130
+      @window.add_control( btnExport )
+      
+      # Close
+      btnClose = TT::GUI::Button.new( 'Close' ) { |control|
+        control.window.close
+      }
+      btnClose.size( 75, 23 )
+      btnClose.right = 5
+      btnClose.bottom = 5
+      @window.add_control( btnClose )
+    #end
+    
+    @window.show_window
+    @window
+  end
+  
+  
+  # Class that defer a procs execution by a given delay. If a value is given
+  # it will only trigger if the value has changed.
+  #
+  # @since 2.0.0
+  class DeferredEvent
+    
+    # @since 2.0.0
+    def initialize( delay = 0.2, &block )
+      @proc = block
+      @delay = delay
+      @last_value = nil
+      @timer = nil
+    end
+    
+    # @since 2.0.0
+    def call( value )
+      return false if value == @last_value
+      UI.stop_timer( @timer ) if @timer
+      @timer = UI.start_timer( @delay, false ) {
+        UI.stop_timer( @timer ) # Ensure it only runs once.
+        @proc.call( value )
+      }
+      true
+    end
+    
+  end # class DeferredEvent
+  
+  
+  # @since 2.0.0
+  def self.width_changed( value )
+    puts value
+  end
+  
+  
+  # @since 2.0.0
+  def self.aspect_changed( value )
+    aspect_ratio = TT::Locale.string_to_float( value )
+    Sketchup.active_model.active_view.camera.aspect_ratio = aspect_ratio
+  end
+  
+  
+  # @since 2.0.0
+  def self.export_safeframe
+    # (!)
+    self.export_viewport( width, height )
+  end
+  
+  
+  # @since 2.0.0
+  class DistanceProbe
+    
+    # @since 2.0.0
+    def initialize
+      @distance = nil
+      @ip_mouse = Sketchup::InputPoint.new
+    end
+    
+    # @since 2.0.0
+    def resume( view )
+      view.invalidate
+    end
+    
+    # @since 2.0.0
+    def deactivate( view )
+      view.invalidate
+    end
+    
+    # @since 2.0.0
+    def onMouseMove( flags, x, y, view )
+      @ip_mouse.pick( view, x, y )
+      @distance = view.camera.eye.distance( @ip_mouse.position )
+      inches = sprintf( '%.2f', @distance.to_f )
+      view.tooltip = "Distance in model units: #{@distance}\nDistance in inches: #{inches}"
+      view.invalidate
+    end
+    
+    # @since 2.0.0
+    def draw( view )
+      if @ip_mouse.display?
+        view.drawing_color = [0,0,0]
+        view.line_stipple = ''
+        view.line_width = 1
+        view.draw( GL_LINES, view.camera.eye, @ip_mouse.position )
+        
+        @ip_mouse.draw( view )
+      end
+    end
+    
+  end
+  
+  
+  # @since 2.0.0
+  def self.export_viewport( width, height, antialias = false, transparent = false )
+      filename = UI.savepanel('Export Camera Safeframe')
+      return if filename == nil
+      
+      view = Sketchup.active_model.active_view
+      result = view.write_image( filename, width, height, antialias )
+      
+      if result
+        UI.messagebox 'Image saved to: ' + filename
+      else
+        UI.messagebox 'Failed to save image.'
+      end
+    end
   
   
   # Clone Material
@@ -430,13 +644,19 @@ module TT::Plugins::VRayTools
   
   ### DEBUG ### ------------------------------------------------------------
   
+  # TT::Plugins::VRayTools.reload
+  #
   # @since 2.0.0
   def self.reload
+    original_verbose = $VERBOSE
+    $VERBOSE = nil
     load __FILE__
+  ensure
+    $VERBOSE = original_verbose
   end
   
 end # module
 
 #-----------------------------------------------------------------------------
-file_loaded( File.basename(__FILE__) )
+file_loaded( __FILE__ )
 #-----------------------------------------------------------------------------
