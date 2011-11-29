@@ -36,7 +36,7 @@ module TT::Plugins::VRayTools
   
   VRAY_ATTRIBUTES = {
     '1.05' => '{DD17A615-9867-4806-8F46-B37031D7F153}'.freeze,
-    '1.48' => 'Something...Check the previous project to see the value we used'.freeze
+    '1.48' => 'Something...Check the previous project to see the value we used'.freeze # LOL!
   }.freeze
   
   
@@ -81,6 +81,8 @@ module TT::Plugins::VRayTools
     }
     cmd.small_icon = File.join( PATH_ICONS, 'camera_aspect_16.png' )
     cmd.large_icon = File.join( PATH_ICONS, 'camera_aspect_24.png' )
+    cmd.tooltip = 'Camera Tools'
+    cmd.status_bar_text = 'Camera Tools'
     cmd_set_camera_aspect_ratio = cmd
     
     cmd = UI::Command.new( 'Reset Camera Aspect Ratio' ) { 
@@ -242,8 +244,8 @@ module TT::Plugins::VRayTools
     #unless @window
       props = {
         :dialog_title => 'Camera Tools',
-        :width => 200,
-        :height => 250,
+        :width => 220,
+        :height => 230,
         :resizable => false
       }
       @window = TT::GUI::ToolWindow.new( props )
@@ -254,22 +256,28 @@ module TT::Plugins::VRayTools
         puts control.value
       }
       
+      # Camera Aspect Ratio Group
+      gAspect = TT::GUI::Groupbox.new( 'Aspect Ratio' )
+      gAspect.move( 5, 5 )
+      gAspect.size( 200, 52 )
+      @window.add_control( gAspect )
+      
       # Aspect Ratio
       eAspectChange = DeferredEvent.new { |value| self.aspect_changed( value ) }
       aspect_ratio = TT::Locale.float_to_string( camera.aspect_ratio )
       txtAspectRatio = TT::GUI::Textbox.new( aspect_ratio )
-      txtAspectRatio.top = 10
+      txtAspectRatio.top = 20
       txtAspectRatio.left = 80
       txtAspectRatio.width = 30
       txtAspectRatio.add_event_handler( :textchange ) { |control|
         eAspectChange.call( control.value )
       }
-      @window.add_control( txtAspectRatio )
+      gAspect.add_control( txtAspectRatio )
       
       lblWidth = TT::GUI::Label.new( 'Aspect Ratio:', txtAspectRatio )
-      lblWidth.top = 10
+      lblWidth.top = 20
       lblWidth.left = 10
-      @window.add_control( lblWidth )
+      gAspect.add_control( lblWidth )
       
       btnResetAspect = TT::GUI::Button.new( 'Reset' ) { |control|
         self.reset_camera_aspect_ratio
@@ -277,55 +285,84 @@ module TT::Plugins::VRayTools
         textbox.value = TT::Locale.float_to_string( 0.0 )
       }
       btnResetAspect.size( 75, 23 )
-      btnResetAspect.right = 5
-      btnResetAspect.top = 7
-      @window.add_control( btnResetAspect )
+      btnResetAspect.right = 7
+      btnResetAspect.top = 17
+      gAspect.add_control( btnResetAspect )
+      
+      # Export Viewport Group
+      gExport = TT::GUI::Groupbox.new( 'Export Safeframe' )
+      gExport.move( 5, 65 )
+      gExport.size( 200, 100 )
+      @window.add_control( gExport )
       
       # Width
       eWidthChange = DeferredEvent.new { |value| self.width_changed( value ) }
       txtWidth = TT::GUI::Textbox.new( view.vpwidth )
-      txtWidth.top = 100
+      txtWidth.top = 20
       txtWidth.left = 50
       txtWidth.width = 40
       txtWidth.add_event_handler( :textchange ) { |control|
         eWidthChange.call( control.value )
       }
-      @window.add_control( txtWidth )
+      gExport.add_control( txtWidth )
+      @tWidth = txtWidth
       
       lblWidth = TT::GUI::Label.new( 'Width:', txtWidth )
-      lblWidth.top = 100
+      lblWidth.top = 20
       lblWidth.left = 10
-      @window.add_control( lblWidth )
+      gExport.add_control( lblWidth )
       
       # Height
-      txtHeight = TT::GUI::Textbox.new( view.vpheight )
-      txtHeight.top = 100
+      if view.camera.aspect_ratio == 0.0
+        height = view.vpheight
+      else
+        ratio = 1.0 / view.camera.aspect_ratio
+        height = ( view.vpwidth * ratio ).to_i
+      end
+      eHeightChange = DeferredEvent.new { |value| self.height_changed( value ) }
+      txtHeight = TT::GUI::Textbox.new( height )
+      txtHeight.top = 20
       txtHeight.left = 140
       txtHeight.width = 40
-      txtHeight.add_event_handler( :textchange, &change_event )
-      @window.add_control( txtHeight )
+      txtHeight.add_event_handler( :textchange ) { |control|
+        eHeightChange.call( control.value )
+      }
+      gExport.add_control( txtHeight )
+      @tHeight = txtHeight
       
       lblHeight = TT::GUI::Label.new( 'Height:', txtHeight )
-      lblHeight.top = 100
+      lblHeight.top = 20
       lblHeight.left = 100
-      @window.add_control( lblHeight )
+      gExport.add_control( lblHeight )
+      
+      # Transparency
+      chkTransp = TT::GUI::Checkbox.new( 'Transparency' )
+      chkTransp.move( 10, 45 )
+      gExport.add_control( chkTransp )
+      @cTransp = chkTransp
+      
+      # Anti-aliasing
+      chkAA = TT::GUI::Checkbox.new( 'Anti-aliasing' )
+      chkAA.move( 10, 70 )
+      gExport.add_control( chkAA )
+      @cAA = chkAA
       
       # Export
       btnExport = TT::GUI::Button.new( 'Export' ) { |control|
-        self.todo
+        self.export_safeframe
       }
       btnExport.size( 75, 23 )
-      btnExport.right = 5
-      btnExport.top = 130
-      @window.add_control( btnExport )
+      btnExport.right = 7
+      btnExport.bottom = 8
+      gExport.add_control( btnExport )
       
       # Close
       btnClose = TT::GUI::Button.new( 'Close' ) { |control|
         control.window.close
       }
       btnClose.size( 75, 23 )
-      btnClose.right = 5
-      btnClose.bottom = 5
+      btnClose.right = 7
+      btnClose.bottom = 7
       @window.add_control( btnClose )
     #end
     
@@ -364,21 +401,46 @@ module TT::Plugins::VRayTools
   
   # @since 2.0.0
   def self.width_changed( value )
-    puts value
+    puts "width_changed( #{value} )"
+    view = Sketchup.active_model.active_view
+    if view.camera.aspect_ratio == 0.0
+      ratio = view.vpheight.to_f / view.vpwidth.to_f
+    else
+      ratio = 1.0 / view.camera.aspect_ratio
+    end
+    @tHeight.value = ( value.to_i * ratio ).to_i
+  end
+  
+  
+  # @since 2.0.0
+  def self.height_changed( value )
+    puts "height_changed( #{value} )"
+    view = Sketchup.active_model.active_view
+    if view.camera.aspect_ratio == 0.0
+      ratio = view.vpwidth.to_f / view.vpheight.to_f
+    else
+      ratio = view.camera.aspect_ratio
+    end
+    @tWidth.value = ( value.to_i * ratio ).to_i
   end
   
   
   # @since 2.0.0
   def self.aspect_changed( value )
+    puts "aspect_changed( #{value} )"
     aspect_ratio = TT::Locale.string_to_float( value )
     Sketchup.active_model.active_view.camera.aspect_ratio = aspect_ratio
+    self.width_changed( @tWidth.value )
   end
   
   
   # @since 2.0.0
   def self.export_safeframe
-    # (!)
-    self.export_viewport( width, height )
+    width = @tWidth.value.to_i
+    height = @tHeight.value.to_i
+    antialias = @cAA.checked
+    transparent = @cTransp.checked
+    self.export_viewport( width, height, antialias, transparent )
   end
   
   
@@ -427,18 +489,28 @@ module TT::Plugins::VRayTools
   
   # @since 2.0.0
   def self.export_viewport( width, height, antialias = false, transparent = false )
-      filename = UI.savepanel('Export Camera Safeframe')
-      return if filename == nil
-      
-      view = Sketchup.active_model.active_view
-      result = view.write_image( filename, width, height, antialias )
-      
-      if result
-        UI.messagebox 'Image saved to: ' + filename
-      else
-        UI.messagebox 'Failed to save image.'
-      end
+    #filetypes = '*.png;*.jpg;*.bmp;*.tif;*.pdf;*.eps;*.epx;*.dwg;*.dxf'
+    #filename = UI.savepanel( 'Export Camera Safeframe', nil, filetypes )
+    filename = UI.savepanel( 'Export Camera Safeframe' )
+    return if filename == nil
+    
+    view = Sketchup.active_model.active_view
+    options = {
+      :filename => filename,
+      :width => width,
+      :height => height,
+      :antialias => antialias,
+      :compression => 0.9,
+      :transparent => transparent
+    }
+    result = view.write_image( options )
+    
+    if result
+      UI.messagebox 'Image saved to: ' + filename
+    else
+      UI.messagebox 'Failed to save image.'
     end
+  end
   
   
   # Clone Material
@@ -480,12 +552,6 @@ module TT::Plugins::VRayTools
     model = Sketchup.active_model
     materials = model.materials
     sel = model.selection
-    
-    #unless materials.respond_to?( :rename )
-    #  msg = 'This function is only availible to SketchUp 8 Service Release 1 or newer.'
-    #  UI.messagebox( msg )
-    #  return
-    #end
     
     unless self.selection_is_face_with_material?
       msg = 'Invalid selection. Select a single face with a material applied to the front.'
