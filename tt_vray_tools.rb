@@ -17,7 +17,7 @@
 require 'sketchup.rb'
 require 'TT_Lib2/core.rb'
 
-TT::Lib.compatible?('2.6.0', 'V-Ray Tools²')
+TT::Lib.compatible?('2.7.0', 'V-Ray Tools²')
 
 #-----------------------------------------------------------------------------
 
