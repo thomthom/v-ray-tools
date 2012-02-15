@@ -1,32 +1,27 @@
-#-----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # Compatible: SketchUp 7 (PC)
 #             (other versions untested)
-#-----------------------------------------------------------------------------
-#
-# CHANGELOG
-# 2.0.0 - 01.03.2011
-#		 * Initial release.
-#
-#-----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 #
 # Thomas Thomassen
 # thomas[at]thomthom[dot]net
 #
-#-----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 require 'sketchup.rb'
 require 'TT_Lib2/core.rb'
 
 TT::Lib.compatible?('2.7.0', 'V-Ray Tools²')
 
-#-----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 module TT::Plugins::VRayTools
   
-  ### CONSTANTS ### --------------------------------------------------------
+  ### CONSTANTS ### ------------------------------------------------------------
   
-  PLUGIN_NAME = 'V-Ray Tools²'.freeze
-  PLUGIN_VERSION = '2.0.0'.freeze
+  PLUGIN_ID       = 'TT_VRayTools'.freeze
+  PLUGIN_NAME     = 'V-Ray Tools²'.freeze
+  PLUGIN_VERSION  = TT::Version.new( 2,0,0 ).freeze
   
   PREF_KEY = 'TT_VRayTools'.freeze
   
@@ -40,7 +35,7 @@ module TT::Plugins::VRayTools
   }.freeze
   
   
-  ### MODULE VARIABLES ### -------------------------------------------------
+  ### MODULE VARIABLES ### -----------------------------------------------------
   
   # Preference
   #@settings = TT::Settings.new(PREF_KEY)
@@ -49,14 +44,14 @@ module TT::Plugins::VRayTools
   
   # Ensure the VfSU 1.48+ core is loaded.
   begin
-    require 'vfs.rb'
+    Sketchup::require( 'vfs.rb' )
     @vray_loader = File.join( ASGVISRubyFolder, 'R2P.rb' )
   rescue LoadError
     @vray_loader = nil
   end
   
   
-  ### MENU & TOOLBARS ### --------------------------------------------------
+  ### MENU & TOOLBARS ### ------------------------------------------------------
   
   unless file_loaded?( __FILE__ )
     # Commands
@@ -93,13 +88,6 @@ module TT::Plugins::VRayTools
     cmd.tooltip = 'Resets the camera aspect ratio'
     cmd.status_bar_text = 'Resets the camera aspect ratio'
     cmd_reset_camera_aspect_ratio = cmd
-    
-    cmd = UI::Command.new( 'Export CameraView' ) { 
-      self.open_camera_window
-    }
-    cmd.small_icon = File.join( PATH_ICONS, 'camera_export_viewport_16.png' )
-    cmd.large_icon = File.join( PATH_ICONS, 'camera_export_viewport_24.png' )
-    cmd_export_camera_view = cmd
     
     
     # Menus
@@ -145,7 +133,6 @@ module TT::Plugins::VRayTools
     toolbar.add_separator
     toolbar.add_item( cmd_set_camera_aspect_ratio )
     toolbar.add_item( cmd_reset_camera_aspect_ratio )
-    #toolbar.add_item( cmd_export_camera_view )
     
     if toolbar.get_last_state == TB_VISIBLE
       toolbar.restore
@@ -154,6 +141,7 @@ module TT::Plugins::VRayTools
   end
   
   
+  # @return [Integer]
   # @since 2.0.0
   def self.menu_validate_vfsu_load
     if file_loaded?('R2P.rb')
@@ -164,6 +152,7 @@ module TT::Plugins::VRayTools
   end
   
   
+  # @return [Integer]
   # @since 2.0.0
   def self.menu_validate_selected_face_material
     if self.selection_is_face_with_material?
@@ -182,15 +171,14 @@ module TT::Plugins::VRayTools
   end
   
   
-  ### MAIN SCRIPT ### ------------------------------------------------------
+  ### MAIN SCRIPT ### ----------------------------------------------------------
   
+  # @param [Sketchup::Entity] entity
+  #
   # @since 2.0.0
   def self.is_vray_object?( entity )
     return false unless TT::Instance.is?( entity )
     return false if entity.attribute_dictionaries.nil?
-    #VRAY_ATTRIBUTES.each { |version, vr_attribute|
-    #  return true unless entity.attribute_dictionary( vr_attribute )
-    #}
     self.each_vray_dictionary( entity ) { |dictionary|
       return true
     }
@@ -198,6 +186,11 @@ module TT::Plugins::VRayTools
   end
   
   
+  # @param [Sketchup::Entity] entity
+  #
+  # @yield [dictionary] Yields each V-Ray for SketchUp related dictionary.
+  # @yieldparam [Sketchup::AttributeDictionary] dictionary
+  #
   # @since 2.0.0
   def self.each_vray_dictionary( entity )
     VRAY_ATTRIBUTES.each { |version, vr_attribute|
@@ -207,6 +200,9 @@ module TT::Plugins::VRayTools
   end
   
   
+  # @param [Sketchup::Entity] entity
+  #
+  # @return [Integer] Size of V-Ray data
   # @since 2.0.0
   def self.vray_data_size( entity )
     size = 0
@@ -216,14 +212,6 @@ module TT::Plugins::VRayTools
       }
     }
     size
-  end
-  
-  
-  # Dummy message
-  #
-  # @since 2.0.0
-  def self.todo
-    UI.messagebox('Not implemented yet!')
   end
   
   
@@ -241,7 +229,7 @@ module TT::Plugins::VRayTools
     view = Sketchup.active_model.active_view
     camera = view.camera
     
-    #unless @window
+    unless @window
       props = {
         :dialog_title => 'Camera Tools',
         :width => 220,
@@ -364,7 +352,7 @@ module TT::Plugins::VRayTools
       btnClose.right = 7
       btnClose.bottom = 7
       @window.add_control( btnClose )
-    #end
+    end
     
     @window.show_window
     @window
@@ -429,8 +417,85 @@ module TT::Plugins::VRayTools
   def self.aspect_changed( value )
     puts "aspect_changed( #{value} )"
     aspect_ratio = TT::Locale.string_to_float( value )
-    Sketchup.active_model.active_view.camera.aspect_ratio = aspect_ratio
+    #Sketchup.active_model.active_view.camera.aspect_ratio = aspect_ratio
+    view = Sketchup.active_model.active_view
+    self.set_aspect_ratio( view, aspect_ratio, true, true )
     self.width_changed( @tWidth.value )
+  end
+  
+  
+  # @since 2.0.0
+  def self.set_aspect_ratio( view, ratio, zoom_fix = true, commit = false )
+    # (!) view.field_of_view _might_ be horisontal - see if a rule can be made.
+    #
+    # If the debug camera window in SU has been used to modify the camera then
+    # anything might fail.
+    #
+    # However, standard behaviour appear to be that when there is no camera
+    # aspect ratio set, then view.field_of_view returns vertical AOV, and
+    # horisontal AOV when it is set.
+    #
+    # Trying to reset to default behaviour first.
+    #view.model.start_operation( 'Set Aspect Ratio', true ) if commit
+    if zoom_fix
+      viewport_ratio = view.vpwidth.to_f / view.vpheight.to_f
+      
+      v_aov = view.field_of_view
+      h_aov = haov_from_vaov( v_aov, 1.0 / viewport_ratio )
+      
+      puts "Ratio: #{ratio}"
+      puts "V AOV: #{v_aov}"
+      puts "H AOV: #{h_aov}"
+      puts "FOV Ratio: #{h_aov / v_aov}"
+      puts "FOV Ratio: #{v_aov / h_aov}"
+      puts "Camera Ratio: #{view.camera.aspect_ratio}"
+      puts "View Ratio: #{viewport_ratio}"
+      puts "\n"
+      
+      # Zoom in to restore original viewport
+      #if view.camera.aspect_ratio > viewport_ratio
+        #h_aov = view.field_of_view
+        #v_aov = haov_from_vaov( h_aov, 1.0 / viewport_ratio )
+        #view.zoom( h_aov / v_aov )
+      #end
+      #view.camera.aspect_ratio = 0.0
+      
+      # Zoom out to restore original viewport
+      if ratio > viewport_ratio
+        v_aov = view.field_of_view
+        h_aov = haov_from_vaov( v_aov, viewport_ratio )
+        view.camera.aspect_ratio = ratio
+        view.zoom( v_aov / h_aov )
+        puts '01'
+      else
+        # ERR!
+        view.camera.aspect_ratio = ratio
+        view.zoom( 1.0 / ratio )
+        puts '02'
+      end
+      
+      #view.camera.aspect_ratio = ratio
+    else
+      view.camera.aspect_ratio = ratio
+    end
+    #view.model.commit_operation if commit
+    
+=begin
+    viewport_ratio = view.vpwidth.to_f / view.vpheight.to_f
+    
+    # Zoom in when
+    if view.camera.aspect_ratio > viewport_ratio
+    
+    # Zoom out when
+    if view.camera.aspect_ratio == 0
+    if ratio > viewport_ratio
+=end
+  end
+  
+  
+  # @since 2.0.0
+  def self.haov_from_vaov( vaov, ratio )
+    return (2 * Math.atan( Math.tan(vaov.degrees / 2) * ratio )).radians
   end
   
   
