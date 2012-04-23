@@ -34,6 +34,8 @@ module TT::Plugins::VRayTools
     '1.48' => 'Something...Check the previous project to see the value we used'.freeze # LOL!
   }.freeze
   
+  FIX_CAMERA_ZOOM = true
+  
   
   ### MODULE VARIABLES ### -----------------------------------------------------
   
@@ -227,7 +229,10 @@ module TT::Plugins::VRayTools
   #
   # @since 2.0.0
   def self.reset_camera_aspect_ratio
-    Sketchup.active_model.active_view.camera.aspect_ratio = 0
+    #Sketchup.active_model.active_view.camera.aspect_ratio = 0
+    view = Sketchup.active_model.active_view
+    self.set_aspect_ratio( view, 0.0, FIX_CAMERA_ZOOM, true )
+    self.width_changed( @tWidth.value )
   end
   
   
@@ -427,7 +432,7 @@ module TT::Plugins::VRayTools
     aspect_ratio = TT::Locale.string_to_float( value )
     #Sketchup.active_model.active_view.camera.aspect_ratio = aspect_ratio
     view = Sketchup.active_model.active_view
-    self.set_aspect_ratio( view, aspect_ratio, true, true )
+    self.set_aspect_ratio( view, aspect_ratio, FIX_CAMERA_ZOOM, true )
     self.width_changed( @tWidth.value )
   end
   
@@ -458,15 +463,19 @@ module TT::Plugins::VRayTools
       puts "FOV Ratio: #{v_aov / h_aov}"
       puts "Camera Ratio: #{view.camera.aspect_ratio}"
       puts "View Ratio: #{viewport_ratio}"
-      puts "\n"
+      #puts "\n"
       
       # Zoom in to restore original viewport
-      #if view.camera.aspect_ratio > viewport_ratio
-        #h_aov = view.field_of_view
-        #v_aov = haov_from_vaov( h_aov, 1.0 / viewport_ratio )
-        #view.zoom( h_aov / v_aov )
-      #end
-      #view.camera.aspect_ratio = 0.0
+      if view.camera.aspect_ratio > viewport_ratio
+        puts "> Camera aspect large than viewport"
+        h_aov = view.field_of_view
+        v_aov = haov_from_vaov( h_aov, 1.0 / viewport_ratio )
+        puts "> Zoom reset (#{h_aov / v_aov })"
+        view.zoom( h_aov / v_aov )
+      end
+      view.camera.aspect_ratio = 0.0
+      
+      return if ratio == 0.0
       
       # Zoom out to restore original viewport
       if ratio > viewport_ratio
@@ -474,30 +483,24 @@ module TT::Plugins::VRayTools
         h_aov = haov_from_vaov( v_aov, viewport_ratio )
         view.camera.aspect_ratio = ratio
         view.zoom( v_aov / h_aov )
-        puts '01'
+        puts "> 01 (#{v_aov / h_aov})"
       else
-        # ERR!
+        # (!) Error!
+        #     The camera isn't properly reset. It appear that the viewport
+        #     aspect ratio isn't the exact pivot point for when the shifting
+        #     is done.
         view.camera.aspect_ratio = ratio
         view.zoom( 1.0 / ratio )
-        puts '02'
+        puts "> 02 (#{1.0 / ratio})"
       end
+      
+      puts "\n"
       
       #view.camera.aspect_ratio = ratio
     else
       view.camera.aspect_ratio = ratio
     end
     #view.model.commit_operation if commit
-    
-=begin
-    viewport_ratio = view.vpwidth.to_f / view.vpheight.to_f
-    
-    # Zoom in when
-    if view.camera.aspect_ratio > viewport_ratio
-    
-    # Zoom out when
-    if view.camera.aspect_ratio == 0
-    if ratio > viewport_ratio
-=end
   end
   
   
