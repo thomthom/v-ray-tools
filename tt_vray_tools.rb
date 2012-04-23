@@ -43,10 +43,18 @@ module TT::Plugins::VRayTools
   #@settings[:rayspray_number, 32]
   
   # Ensure the VfSU 1.48+ core is loaded.
+  @vray_loader = nil
   begin
-    Sketchup::require( 'vfs.rb' )
-    @vray_loader = File.join( ASGVISRubyFolder, 'R2P.rb' )
+    for path in $LOAD_PATH
+      file = File.join( path, 'vfs.rb' )
+      if File.exist?( file )
+        Sketchup::require( file )
+        @vray_loader = File.join( ASGVISRubyFolder, 'R2P.rb' )
+      end
+    end
   rescue LoadError
+    @vray_loader = nil
+  rescue
     @vray_loader = nil
   end
   
