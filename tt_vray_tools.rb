@@ -40,9 +40,10 @@ module TT::Plugins::VRayTools
   ### MODULE VARIABLES ### -----------------------------------------------------
   
   # Preference
-  #@settings = TT::Settings.new(PREF_KEY)
-  #@settings[:ray_stop_at_ground, false]
-  #@settings[:rayspray_number, 32]
+  @settings = TT::Settings.new(PREF_KEY)
+  @settings[ :export_width, Sketchup.active_model.active_view.vpwidth ]
+  @settings[ :export_transparency, false ]
+  @settings[ :export_antialias, false ]
   
   # Ensure the VfSU 1.48+ core is loaded.
   @vray_loader = nil
@@ -297,8 +298,9 @@ module TT::Plugins::VRayTools
       @window.add_control( gExport )
       
       # Width
+      width = @settings[ :export_width ]
       eWidthChange = DeferredEvent.new { |value| self.width_changed( value ) }
-      txtWidth = TT::GUI::Textbox.new( view.vpwidth )
+      txtWidth = TT::GUI::Textbox.new( width )
       txtWidth.top = 20
       txtWidth.left = 50
       txtWidth.width = 40
@@ -315,10 +317,11 @@ module TT::Plugins::VRayTools
       
       # Height
       if view.camera.aspect_ratio == 0.0
-        height = view.vpheight
+        ratio = view.vpheight.to_f / view.vpwidth
+        height = ( view.vpwidth * ratio ).to_i
       else
         ratio = 1.0 / view.camera.aspect_ratio
-        height = ( view.vpwidth * ratio ).to_i
+        height = ( width * ratio ).to_i
       end
       eHeightChange = DeferredEvent.new { |value| self.height_changed( value ) }
       txtHeight = TT::GUI::Textbox.new( height )
@@ -339,12 +342,14 @@ module TT::Plugins::VRayTools
       # Transparency
       chkTransp = TT::GUI::Checkbox.new( 'Transparency' )
       chkTransp.move( 10, 45 )
+      chkTransp.checked = @settings[ :export_transparency ]
       gExport.add_control( chkTransp )
       @cTransp = chkTransp
       
       # Anti-aliasing
       chkAA = TT::GUI::Checkbox.new( 'Anti-aliasing' )
       chkAA.move( 10, 70 )
+      chkAA.checked = @settings[ :export_antialias ]
       gExport.add_control( chkAA )
       @cAA = chkAA
       
@@ -359,6 +364,9 @@ module TT::Plugins::VRayTools
       
       # Close
       btnClose = TT::GUI::Button.new( 'Close' ) { |control|
+        @settings[ :export_width ] = @tWidth.value.to_i
+        @settings[ :export_transparency ] = @cTransp.checked?
+        @settings[ :export_antialias ] = @cAA.checked?
         control.window.close
       }
       btnClose.size( 75, 23 )
