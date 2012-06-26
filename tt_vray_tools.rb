@@ -113,6 +113,10 @@ module TT::Plugins::VRayTools
       Sketchup.active_model.select_tool( DistanceProbe.new )
     }
     
+    m.add_item( 'Recreate Scene' ) {
+      self.recreate_scene
+    }
+    
     m.add_separator
     
     m.add_item( cmd_override_material )
@@ -223,6 +227,27 @@ module TT::Plugins::VRayTools
       }
     }
     size
+  end
+  
+  
+  # Recreate current camera as new scene.
+  # Designed to work around an issue where V-Ray doesn't match the V-Ray view
+  # when redering PhotoMatched scenes.
+  #
+  # @since 2.0.0
+  def self.recreate_scene
+    model = Sketchup.active_model
+    view = model.active_view
+    camera = view.camera
+    
+    model.start_operation( 'Recreate Camera', true )
+    
+    name = "#{model.pages.selected_page.name} - Recreated"
+    page = model.pages.add( name )
+    page.camera.set( camera.eye, camera.target, camera.up )
+    model.pages.selected_page = page
+    
+    model.commit_operation
   end
   
   
