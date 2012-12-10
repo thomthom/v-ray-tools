@@ -64,6 +64,17 @@ module TT::Plugins::VRayTools
   
   ### MENU & TOOLBARS ### ------------------------------------------------------
   
+  # @return [Integer]
+  # @since 2.0.0
+  def self.menu_validate_vfsu_load
+    if file_loaded?('R2P.rb')
+      MF_DISABLED | MF_GRAYED
+    else
+      MF_ENABLED
+    end
+  end
+  
+  
   unless file_loaded?( __FILE__ )
     # Commands
     cmd = UI::Command.new( 'Load V-Ray' ) { 
@@ -152,17 +163,6 @@ module TT::Plugins::VRayTools
     if toolbar.get_last_state == TB_VISIBLE
       toolbar.restore
       UI.start_timer( 0.1, false ) { toolbar.restore } # SU bug 2902434
-    end
-  end
-  
-  
-  # @return [Integer]
-  # @since 2.0.0
-  def self.menu_validate_vfsu_load
-    if file_loaded?('R2P.rb')
-      MF_DISABLED | MF_GRAYED
-    else
-      MF_ENABLED
     end
   end
   
