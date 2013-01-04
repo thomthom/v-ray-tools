@@ -1,7 +1,4 @@
 #-------------------------------------------------------------------------------
-# Compatible: SketchUp 7 (PC)
-#             (other versions untested)
-#-------------------------------------------------------------------------------
 #
 # Thomas Thomassen
 # thomas[at]thomthom[dot]net
@@ -9,19 +6,39 @@
 #-------------------------------------------------------------------------------
 
 require 'sketchup.rb'
-require 'TT_Lib2/core.rb'
+begin
+  require 'TT_Lib2/core.rb'
+rescue LoadError => e
+  module TT
+    if @lib2_update.nil?
+      url = 'http://www.thomthom.net/software/sketchup/tt_lib2/errors/not-installed'
+      options = {
+        :dialog_title => 'TT_LibÂ² Not Installed',
+        :scrollable => false, :resizable => false, :left => 200, :top => 200
+      }
+      w = UI::WebDialog.new( options )
+      w.set_size( 500, 300 )
+      w.set_url( "#{url}?plugin=#{File.basename( __FILE__ )}" )
+      w.show
+      @lib2_update = w
+    end
+  end
+end
 
-TT::Lib.compatible?('2.7.0', 'V-Ray Tools²')
 
 #-------------------------------------------------------------------------------
+
+if defined?( TT::Lib ) && TT::Lib.compatible?( '2.7.0', 'V-Ray ToolsÂ²' )
 
 module TT::Plugins::VRayTools
   
   ### CONSTANTS ### ------------------------------------------------------------
   
   PLUGIN_ID       = 'TT_VRayTools'.freeze
-  PLUGIN_NAME     = 'V-Ray Tools²'.freeze
+  PLUGIN_NAME     = 'V-Ray ToolsÂ²'.freeze
   PLUGIN_VERSION  = TT::Version.new( 2,0,0 ).freeze
+  
+  RELEASE_DATE    = '03 Jan 13'.freeze
   
   PREF_KEY = 'TT_VRayTools'.freeze
   
@@ -35,6 +52,20 @@ module TT::Plugins::VRayTools
   }.freeze
   
   FIX_CAMERA_ZOOM = true
+  
+  
+  ### LIB FREDO UPDATER ### ----------------------------------------------------
+  
+  def self.register_plugin_for_LibFredo6
+    {
+      :name => PLUGIN_NAME,
+      :author => 'thomthom',
+      :version => PLUGIN_VERSION.to_s,
+      :date => RELEASE_DATE,   
+      :description => 'Utility to work with V-Ray for SketchUp.',
+      :link_info => 'http://sketchucation.com/forums/viewtopic.php?f=323&t=15491'
+    }
+  end
   
   
   ### MODULE VARIABLES ### -----------------------------------------------------
@@ -832,6 +863,10 @@ module TT::Plugins::VRayTools
   
 end # module
 
-#-----------------------------------------------------------------------------
+end # if TT_Lib
+
+#-------------------------------------------------------------------------------
+
 file_loaded( __FILE__ )
-#-----------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
