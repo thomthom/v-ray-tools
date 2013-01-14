@@ -38,7 +38,7 @@ module TT::Plugins::VRayTools
   PLUGIN_NAME     = 'V-Ray Tools²'.freeze
   PLUGIN_VERSION  = TT::Version.new( 2,0,0 ).freeze
   
-  RELEASE_DATE    = '03 Jan 13'.freeze
+  RELEASE_DATE    = '14 Jan 13'.freeze
   
   PREF_KEY = 'TT_VRayTools'.freeze
   
@@ -83,7 +83,9 @@ module TT::Plugins::VRayTools
       file = File.join( path, 'vfs.rb' )
       if File.exist?( file )
         Sketchup::require( file )
-        @vray_loader = File.join( ASGVISRubyFolder, 'R2P.rb' )
+        if defined?( ASGVISRubyFolder )
+          @vray_loader = File.join( ASGVISRubyFolder, 'R2P.rb' )
+        end
       end
     end
   rescue LoadError
