@@ -38,7 +38,7 @@ module TT::Plugins::VRayTools
   PLUGIN_NAME     = 'V-Ray Tools²'.freeze
   PLUGIN_VERSION  = TT::Version.new( 2,0,0 ).freeze
   
-  RELEASE_DATE    = '14 Jan 13'.freeze
+  RELEASE_DATE    = '19 Feb 13'.freeze
   
   PREF_KEY = 'TT_VRayTools'.freeze
   
@@ -63,7 +63,7 @@ module TT::Plugins::VRayTools
       :version => PLUGIN_VERSION.to_s,
       :date => RELEASE_DATE,   
       :description => 'Utility to work with V-Ray for SketchUp.',
-      :link_info => 'http://sketchucation.com/forums/viewtopic.php?f=323&t=15491'
+      :link_info => 'http://sketchucation.com/forums/viewtopic.php?t=15491'
     }
   end
   
