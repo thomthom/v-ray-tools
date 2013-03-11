@@ -36,9 +36,9 @@ module TT::Plugins::VRayTools
   
   PLUGIN_ID       = 'TT_VRayTools'.freeze
   PLUGIN_NAME     = 'V-Ray Tools²'.freeze
-  PLUGIN_VERSION  = TT::Version.new( 2,0,0 ).freeze
+  PLUGIN_VERSION  = TT::Version.new( 2,1,0 ).freeze
   
-  RELEASE_DATE    = '19 Feb 13'.freeze
+  RELEASE_DATE    = '11 Mar 13'.freeze
   
   PREF_KEY = 'TT_VRayTools'.freeze
   
@@ -85,6 +85,10 @@ module TT::Plugins::VRayTools
         Sketchup::require( file )
         if defined?( ASGVISRubyFolder )
           @vray_loader = File.join( ASGVISRubyFolder, 'R2P.rb' )
+        elsif defined?( VRayForSketchUp )
+          vray_folder = VRayForSketchUp.getASGVISRubyFolder
+          ruby_folder = File.join( vray_folder, 'VfS', 'Ruby' )
+          @vray_loader = File.join( ruby_folder, 'R2P.rb' )
         end
       end
     end
