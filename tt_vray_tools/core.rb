@@ -34,18 +34,6 @@ module TT::Plugins::VRayTools
   
   ### CONSTANTS ### ------------------------------------------------------------
   
-  PLUGIN_ID       = 'TT_VRayTools'.freeze
-  PLUGIN_NAME     = 'V-Ray Tools²'.freeze
-  PLUGIN_VERSION  = TT::Version.new( 2,1,0 ).freeze
-  
-  RELEASE_DATE    = '11 Mar 13'.freeze
-  
-  PREF_KEY = 'TT_VRayTools'.freeze
-  
-  PATH_ROOT   = File.dirname( __FILE__ ).freeze
-  PATH_PLUGIN = File.join( PATH_ROOT, 'V-Ray Tools 2' ).freeze
-  PATH_ICONS  = File.join( PATH_PLUGIN, 'Icons' ).freeze
-  
   VRAY_ATTRIBUTES = {
     '1.05' => '{DD17A615-9867-4806-8F46-B37031D7F153}'.freeze,
     '1.48' => 'Something...Check the previous project to see the value we used'.freeze # LOL!
@@ -54,27 +42,13 @@ module TT::Plugins::VRayTools
   FIX_CAMERA_ZOOM = true
   
   
-  ### LIB FREDO UPDATER ### ----------------------------------------------------
-  
-  def self.register_plugin_for_LibFredo6
-    {
-      :name => PLUGIN_NAME,
-      :author => 'thomthom',
-      :version => PLUGIN_VERSION.to_s,
-      :date => RELEASE_DATE,   
-      :description => 'Utility to work with V-Ray for SketchUp.',
-      :link_info => 'http://sketchucation.com/forums/viewtopic.php?t=15491'
-    }
-  end
-  
-  
   ### MODULE VARIABLES ### -----------------------------------------------------
   
   # Preference
-  @settings = TT::Settings.new(PREF_KEY)
-  @settings[ :export_width, Sketchup.active_model.active_view.vpwidth ]
-  @settings[ :export_transparency, false ]
-  @settings[ :export_antialias, false ]
+  @settings = TT::Settings.new(PLUGIN_ID)
+  @settings.set_default( :export_width, Sketchup.active_model.active_view.vpwidth )
+  @settings.set_default( :export_transparency, false )
+  @settings.set_default( :export_antialias, false )
   
   # Ensure the VfSU 1.48+ core is loaded.
   @vray_loader = nil
@@ -107,7 +81,11 @@ module TT::Plugins::VRayTools
     if file_loaded?('R2P.rb')
       MF_DISABLED | MF_GRAYED
     else
-      MF_ENABLED
+      if @vray_loader
+        MF_ENABLED
+      else
+        MF_DISABLED | MF_GRAYED
+      end
     end
   end
   
@@ -121,6 +99,7 @@ module TT::Plugins::VRayTools
     cmd.large_icon = File.join( PATH_ICONS, 'vfsu_24.png' )
     cmd.tooltip = 'Loads V-Ray for SketchUp'
     cmd.status_bar_text = 'Loads V-Ray for SketchUp'
+    cmd.set_validation_proc { menu_validate_vfsu_load }
     cmd_load_vfsu = cmd
     
     cmd = UI::Command.new( 'Use Selected as Material Override' ) { 
@@ -153,7 +132,6 @@ module TT::Plugins::VRayTools
     m = TT.menu('Plugins').add_submenu( PLUGIN_NAME )
     
     menu = m.add_item( cmd_load_vfsu )
-    m.set_validation_proc( menu ) { menu_validate_vfsu_load }
     
     m.add_separator
     
