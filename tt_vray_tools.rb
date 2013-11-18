@@ -19,7 +19,7 @@ module TT
   # Plugin information
   PLUGIN_ID       = 'TT_VRayTools'.freeze
   PLUGIN_NAME     = 'V-Ray Tools²'.freeze
-  PLUGIN_VERSION  = '2.2.0'.freeze
+  PLUGIN_VERSION  = '2.2.1'.freeze
   
   # Resource paths
   FILENAMESPACE = File.basename( __FILE__, '.rb' )

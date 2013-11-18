@@ -438,9 +438,12 @@ module TT::Plugins::VRayTools
     def call( value )
       return false if value == @last_value
       UI.stop_timer( @timer ) if @timer
+      done = false
       @timer = UI.start_timer( @delay, false ) {
-        UI.stop_timer( @timer ) # Ensure it only runs once.
-        @proc.call( value )
+        unless done # Ensure it only runs once.
+          done = true
+          @proc.call( value )
+        end
       }
       true
     end
